@@ -21,4 +21,5 @@ jobs:
           aws cloudformation deploy \
             --template-file template.yaml \
             --stack-name myadmin-stack-x \
+            --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
