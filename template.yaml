@@ -211,3 +211,6 @@ Resources:
 Outputs:
   VpcId:
     Value: !Ref MyVPC
+  WebURL:
+    Description: The URL of the website
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
