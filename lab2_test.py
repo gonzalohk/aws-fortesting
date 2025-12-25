@@ -41,3 +41,64 @@ def _find_target_group_arn_from_stack(cfn_client, stack_name: str) -> Optional[s
                 return r.get("PhysicalResourceId")
     return None
 
+
+def _wait_for_http_ready(url: str, timeout_seconds: int = 300) -> Tuple[int, str]:
+    """
+    Polls until the endpoint returns a 200 or timeout occurs.
+    Returns (status_code, body_text).
+    """
+    start = time.time()
+    last_exc = None
+
+    while time.time() - start < timeout_seconds:
+        try:
+            r = requests.get(url, timeout=5)
+            # ALB returns 503 while targets are registering or unhealthy; keep retrying.
+            if r.status_code == 200:
+                return r.status_code, r.text
+        except requests.RequestException as exc:
+            last_exc = exc
+
+        time.sleep(5)
+
+    if last_exc:
+        raise AssertionError(f"Endpoint not reachable within timeout. Last error: {last_exc}")
+    raise AssertionError("Endpoint did not return HTTP 200 within timeout.")
+
+
+@pytest.fixture(scope="session")
+def aws_region() -> str:
+    # Uses AWS SDK resolution: env var, config file, etc.
+    session = boto3.session.Session()
+    region = session.region_name
+    if not region:
+        # Many lab environments default to us-east-1; set it explicitly if needed.
+        region = "us-east-1"
+    return region
+
+
+@pytest.fixture(scope="session")
+def cfn(aws_region):
+    return boto3.client("cloudformation", region_name=aws_region)
+
+
+@pytest.fixture(scope="session")
+def elbv2(aws_region):
+    return boto3.client("elbv2", region_name=aws_region)
+
+
+def test_stack_exists_and_has_alb_output(cfn):
+    dns = _get_stack_output(cfn, STACK_NAME, "LoadBalancerDNSName")
+    assert dns and "." in dns, f"Unexpected ALB DNS output: {dns}"
+
+
+def test_alb_http_returns_expected_text(cfn):
+    dns = _get_stack_output(cfn, STACK_NAME, "LoadBalancerDNSName")
+    url = f"http://{dns}/"
+
+    status, body = _wait_for_http_ready(url, timeout_seconds=300)
+    assert status == 200
+    assert EXPECTED_TEXT in body, (
+        f"Expected response to contain '{EXPECTED_TEXT}'. "
+        f"Got: {body[:200]!r}"
+    )
