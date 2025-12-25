@@ -7,7 +7,7 @@ import pytest
 import requests
 
 
-STACK_NAME = "coderoad-lab-2"
+STACK_NAME = "myadmin-stack-x"
 EXPECTED_TEXT = "Hello from the app"
 
 

@@ -134,7 +134,7 @@ Resources:
           Fn::Base64: |
             #!/bin/bash
             dnf -y install httpd
-            echo "Hello from Auto Scaling Group" > /var/www/html/index.html
+            echo "Hello from the app" > /var/www/html/index.html
             systemctl enable httpd
             systemctl start httpd
 
