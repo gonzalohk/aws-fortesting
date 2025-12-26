@@ -82,6 +82,18 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet2
 
+# --- 1. NUEVO: Security Group para el ALB (Público) ---
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Acceso publico desde internet al ALB
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0 # El ALB sí debe ser público
+          
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -95,10 +107,12 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
+
+  
 
   InstanceRole:
     Type: AWS::IAM::Role
@@ -169,7 +183,7 @@ Resources:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
       SecurityGroups:
-        - !Ref SecurityGroup
+        - !Ref ALBSecurityGroup
 
   ALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
