@@ -26,4 +26,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install boto3 botocore requests pytest
       - name: Run pytest
-        run: pytest
+        run: pytest -vvrA

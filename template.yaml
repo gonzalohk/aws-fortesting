@@ -94,7 +94,7 @@ Resources:
           ToPort: 80
           CidrIp: 0.0.0.0/0 # El ALB sí debe ser público
           
-  SecurityGroup:
+  InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow HTTP inbound
@@ -141,7 +141,7 @@ Resources:
         IamInstanceProfile:
           Arn: !GetAtt InstanceProfile.Arn
         SecurityGroupIds:
-          - !Ref SecurityGroup
+          - !Ref InstanceSecurityGroup
         MetadataOptions:
           HttpTokens: required
         UserData:
