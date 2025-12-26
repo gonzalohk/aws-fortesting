@@ -102,3 +102,26 @@ def test_alb_http_returns_expected_text(cfn):
         f"Expected response to contain '{EXPECTED_TEXT}'. "
         f"Got: {body[:200]!r}"
     )
+
+def test_target_group_has_healthy_targets(cfn, elbv2):
+    """
+    Recommended infrastructure-level test:
+    confirms that at least one target is healthy in the TG registered to the ASG.
+    """
+    tg_arn = _find_target_group_arn_from_stack(cfn, STACK_NAME)
+    if not tg_arn:
+        pytest.skip("No TargetGroup resource found in stack; skipping target health check.")
+
+    try:
+        resp = elbv2.describe_target_health(TargetGroupArn=tg_arn)
+    except botocore.exceptions.ClientError as e:
+        raise AssertionError(f"Failed to describe target health for TG '{tg_arn}': {e}") from e
+
+    descs = resp.get("TargetHealthDescriptions", [])
+    assert len(descs) >= 1, "Target group has no registered targets."
+
+    healthy = [
+        d for d in descs
+        if d.get("TargetHealth", {}).get("State") == "healthy"
+    ]
+    assert healthy, f"No healthy targets found. States: {[d.get('TargetHealth', {}) for d in descs]}"
